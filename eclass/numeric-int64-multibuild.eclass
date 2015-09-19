@@ -51,7 +51,7 @@ inherit fortran-2 multilib-build toolchain-funcs
 NUMERIC_INT64_SUFFIX="int64"
 
 # @ECLASS_VARIABLE: NUMERIC_INT64_STATIC_SUFFIX
-# @INTERNALg
+# @INTERNAL
 # @DESCRIPTION: MULTIBUILD_ID suffix for static build
 NUMERIC_INT64_STATIC_SUFFIX="static"
 
