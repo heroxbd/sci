@@ -3,9 +3,9 @@
 # $Id$
 
 EAPI=5
-NUMERIC_MODULE_NAME="reflapack"
+EBASE_PROFNAME="reflapack"
 ESTATIC_MULTIBUILD=1
-inherit fortran-2 cmake-utils multibuild alternatives-2 multilib-build toolchain-funcs numeric-int64-multibuild
+inherit fortran-2 cmake-utils multibuild alternatives-2 multilib-build toolchain-funcs fortran-int64
 
 if [[ ${PV} == "9999" ]] ; then
 	# The master ESVN_REPO_URI is difficult to access, the git mirror is easier
@@ -43,7 +43,7 @@ PDEPEND="
 S="${WORKDIR}/${MYP}"
 
 src_prepare() {
-	numeric-int64_ensure_blas
+	fortran-int64_ensure_blas
 
 	# rename library to avoid collision with other lapack implementations
 	# ${PROFNAME}, ${LIBNAME} and ${BLAS_REQUIRES} are not defined here, they
@@ -73,12 +73,12 @@ src_prepare() {
 }
 
 src_configure() {
-	local MULTIBUILD_VARIANTS=( $(numeric-int64_multilib_get_enabled_abis) )
+	local MULTIBUILD_VARIANTS=( $(fortran-int64_multilib_get_enabled_abis) )
 	my_src_configure() {
-		local profname=$(numeric-int64_get_profname)
+		local profname=$(fortran-int64_get_profname)
 		local libname="${profname//-/_}"
-		local blas_profname=$(numeric-int64_get_blas_module_name)
-		local xblas_profname=$(numeric-int64_get_xblas_provider)
+		local blas_profname=$(fortran-int64_get_blas_profname)
+		local xblas_profname=$(fortran-int64_get_xblas_profname)
 		local xblas_libname="${xblas_profname//-/_}"
 		local blas_requires="${blas_profname}"
 		use xblas && \
@@ -93,12 +93,12 @@ src_configure() {
 			$(cmake-utils_use_use xblas XBLAS)
 			-DCMAKE_C_FLAGS="$($(tc-getPKG_CONFIG) --cflags ${blas_profname}) ${CFLAGS}"
 			-DCMAKE_CXX_FLAGS="$($(tc-getPKG_CONFIG) --cflags ${blas_profname}) ${CXXFLAGS}"
-			-DCMAKE_Fortran_FLAGS="$($(tc-getPKG_CONFIG) --cflags ${blas_profname}) $(get_abi_CFLAGS) $(numeric-int64_get_fortran_int64_abi_fflags) ${FCFLAGS}"
-			-DLAPACK_PKGCONFIG_FFLAGS="$(numeric-int64_get_fortran_int64_abi_fflags)"
+			-DCMAKE_Fortran_FLAGS="$($(tc-getPKG_CONFIG) --cflags ${blas_profname}) $(get_abi_CFLAGS) $(fortran-int64_get_fortran_int64_abi_fflags) ${FCFLAGS}"
+			-DLAPACK_PKGCONFIG_FFLAGS="$(fortran-int64_get_fortran_int64_abi_fflags)"
 		)
 		use xblas && \
 			mycmakeargs+=( -DXBLAS_LIBRARY:FILEPATH="${EROOT}usr/$(get_libdir)/lib${xblas_libname}.so" )
-		if $(numeric-int64_is_static_build); then
+		if $(fortran-int64_is_static_build); then
 			mycmakeargs+=(
 				-DBUILD_SHARED_LIBS=OFF
 				-DBUILD_STATIC_LIBS=ON
@@ -111,29 +111,29 @@ src_configure() {
 		fi
 		cmake-utils_src_configure
 	}
-	multibuild_foreach_variant numeric-int64_multilib_multibuild_wrapper my_src_configure
+	multibuild_foreach_variant fortran-int64_multilib_multibuild_wrapper my_src_configure
 }
 
 src_compile() {
-	local MULTIBUILD_VARIANTS=( $(numeric-int64_multilib_get_enabled_abis) )
-	multibuild_foreach_variant numeric-int64_multilib_multibuild_wrapper cmake-utils_src_compile
+	local MULTIBUILD_VARIANTS=( $(fortran-int64_multilib_get_enabled_abis) )
+	multibuild_foreach_variant fortran-int64_multilib_multibuild_wrapper cmake-utils_src_compile
 }
 
 src_test() {
-	local MULTIBUILD_VARIANTS=( $(numeric-int64_multilib_get_enabled_abis) )
-	multibuild_foreach_variant numeric-int64_multilib_multibuild_wrapper cmake-utils_src_test
+	local MULTIBUILD_VARIANTS=( $(fortran-int64_multilib_get_enabled_abis) )
+	multibuild_foreach_variant fortran-int64_multilib_multibuild_wrapper cmake-utils_src_test
 }
 
 src_install() {
-	local MULTIBUILD_VARIANTS=( $(numeric-int64_multilib_get_enabled_abis) )
+	local MULTIBUILD_VARIANTS=( $(fortran-int64_multilib_get_enabled_abis) )
 	my_src_install()  {
 		cmake-utils_src_install
-		if ! $(numeric-int64_is_static_build); then
-			local profname=$(numeric-int64_get_profname)
-			local provider=$(numeric-int64_get_lapack_provider)
-			alternatives_for ${provider} $(numeric-int64_get_profname "reference") 0 \
+		if ! $(fortran-int64_is_static_build); then
+			local profname=$(fortran-int64_get_profname)
+			local provider=$(fortran-int64_get_lapack_provider)
+			alternatives_for ${provider} $(fortran-int64_get_profname "reference") 0 \
 				/usr/$(get_libdir)/pkgconfig/${provider}.pc ${profname}.pc
 		fi
 	}
-	multibuild_foreach_variant numeric-int64_multilib_multibuild_wrapper my_src_install
+	multibuild_foreach_variant fortran-int64_multilib_multibuild_wrapper my_src_install
 }
