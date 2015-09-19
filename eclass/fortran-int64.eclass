@@ -18,11 +18,11 @@ if [[ ! ${_FORTRAN_INT64_ECLASS} ]]; then
 
 # EAPI=4 is required for meaningful MULTILIB_USEDEP.
 case ${EAPI:-0} in
-	4|5) ;;
+	5) ;;
 	*) die "EAPI=${EAPI} is not supported" ;;
 esac
 
-inherit multilib-build toolchain-funcs
+inherit fortran-2 multilib-build toolchain-funcs
 
 # @ECLASS-VARIABLE: EBASE_PROFNAME
 # @DESCRIPTION: The base pkg-config module name of the package being built.
@@ -220,11 +220,9 @@ fortran-int64_get_xblas_profname() {
 # @CODE
 fortran-int64_get_fortran_int64_abi_fflags() {
 	debug-print-function ${FUNCNAME} "${@}"
-	local openblas_abi_fflags=""
-	if $(fortran-int64_is_int64_build); then
-		openblas_abi_fflags+="-fdefault-integer-8"
-	fi
-	echo "${openblas_abi_fflags}"
+	local abi_fflags=""
+	$(fortran-int64_is_int64_build) && abi_fflags="$(fortran_int64_abi_fflags)"
+	echo "${abi_fflags}"
 }
 
 # @FUNCTION: fortran-int64_multilib_get_enabled_abis
