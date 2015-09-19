@@ -4,8 +4,8 @@
 
 EAPI=5
 
-EBASE_PROFNAME="refcblas"
-inherit eutils alternatives-2 flag-o-matic toolchain-funcs versionator multilib fortran-2 multilib-build fortran-int64
+NUMERIC_MODULE_NAME="refcblas"
+inherit eutils alternatives-2 flag-o-matic toolchain-funcs versionator multilib fortran-2 multilib-build numeric-int64-multibuild
 
 MYPN="${PN/-reference/}"
 
@@ -55,22 +55,22 @@ static_to_shared() {
 }
 
 src_prepare() {
-	local MULTIBUILD_VARIANTS=( $(fortran-int64_multilib_get_enabled_abis) )
-	fortran-int64_ensure_blas
+	local MULTIBUILD_VARIANTS=( $(numeric-int64_multilib_get_enabled_abis) )
+	numeric-int64_ensure_blas
 	find . -name Makefile -exec sed -i \
 		-e 's:make:$(MAKE):g' '{}' \; || die
 	multibuild_copy_sources
 }
 
 src_configure() {
-	local MULTIBUILD_VARIANTS=( $(fortran-int64_multilib_get_enabled_abis) )
+	local MULTIBUILD_VARIANTS=( $(numeric-int64_multilib_get_enabled_abis) )
 	my_configure() {
-		local profname=$(fortran-int64_get_profname)
+		local profname=$(numeric-int64_get_profname)
 		local libname="${profname//-/_}"
 		append-cflags -DADD_
 		cat > Makefile.in <<-EOF
-			BLLIB=$($(tc-getPKG_CONFIG) --libs $(fortran-int64_get_blas_provider))
-			FC=$(tc-getFC) $(get_abi_CFLAGS) $(fortran-int64_get_fortran_int64_abi_fflags)
+			BLLIB=$($(tc-getPKG_CONFIG) --libs $(numeric-int64_get_blas_provider))
+			FC=$(tc-getFC) $(get_abi_CFLAGS) $(numeric-int64_get_fortran_int64_abi_fflags)
 			CC=$(tc-getCC)
 			CBLIB=../lib/lib${libname}.a
 			LOADER=\$(FC)
@@ -79,45 +79,45 @@ src_configure() {
 			RANLIB=$(tc-getRANLIB)
 		EOF
 	}
-	multibuild_foreach_variant run_in_build_dir fortran-int64_multilib_multibuild_wrapper my_configure
+	multibuild_foreach_variant run_in_build_dir numeric-int64_multilib_multibuild_wrapper my_configure
 }
 
 src_compile() {
-	local MULTIBUILD_VARIANTS=( $(fortran-int64_multilib_get_enabled_abis) )
+	local MULTIBUILD_VARIANTS=( $(numeric-int64_multilib_get_enabled_abis) )
 	my_src_compile() {
-		local profname=$(fortran-int64_get_profname)
+		local profname=$(numeric-int64_get_profname)
 		local libname="${profname//-/_}"
 		emake \
 			FFLAGS="${FFLAGS} -fPIC" \
 			CFLAGS="${CFLAGS} -fPIC" \
 			alllib
-		static_to_shared lib/lib${libname}.a $($(tc-getPKG_CONFIG) --libs $(fortran-int64_get_blas_profname))
+		static_to_shared lib/lib${libname}.a $($(tc-getPKG_CONFIG) --libs $(numeric-int64_get_blas_module_name))
 		if use static-libs; then
 			emake clean
 			emake alllib
 		fi
 	}
-	multibuild_foreach_variant run_in_build_dir fortran-int64_multilib_multibuild_wrapper my_src_compile
+	multibuild_foreach_variant run_in_build_dir numeric-int64_multilib_multibuild_wrapper my_src_compile
 }
 
 src_test() {
-	local MULTIBUILD_VARIANTS=( $(fortran-int64_multilib_get_enabled_abis) )
+	local MULTIBUILD_VARIANTS=( $(numeric-int64_multilib_get_enabled_abis) )
 	my_src_test () {
-		local profname=$(fortran-int64_get_profname)
+		local profname=$(numeric-int64_get_profname)
 		local libname="${profname//-/_}"
 		cd testing || die
 		emake
 		emake run
 	}
-	multibuild_foreach_variant run_in_build_dir fortran-int64_multilib_multibuild_wrapper my_src_test
+	multibuild_foreach_variant run_in_build_dir numeric-int64_multilib_multibuild_wrapper my_src_test
 }
 
 src_install() {
-	local MULTIBUILD_VARIANTS=( $(fortran-int64_multilib_get_enabled_abis) )
+	local MULTIBUILD_VARIANTS=( $(numeric-int64_multilib_get_enabled_abis) )
 	my_src_install() {
-		local profname=$(fortran-int64_get_profname)
+		local profname=$(numeric-int64_get_profname)
 		local libname="${profname//-/_}"
-		local provider=$(fortran-int64_get_cblas_provider)
+		local provider=$(numeric-int64_get_cblas_provider)
 		# On linux dynamic libraries are of the form .so.${someversion}
 		# On  OS X dynamic libraries are of the form ${someversion}.dylib
 		dolib.so lib/lib${libname}*$(get_libname)*
@@ -135,12 +135,12 @@ src_install() {
 			Libs: -L\${libdir} -l${libname}
 			Private: -lm
 			Cflags: -I\${includedir}/cblas
-			Requires: $(fortran-int64_get_blas_profname)
-			Fflags=$(fortran-int64_get_fortran_int64_abi_fflags)
+			Requires: $(numeric-int64_get_blas_module_name)
+			Fflags=$(numeric-int64_get_fortran_int64_abi_fflags)
 		EOF
 		insinto /usr/$(get_libdir)/pkgconfig
 		doins ${profname}.pc
-		alternatives_for ${provider} $(fortran-int64_get_profname "reference") 0 \
+		alternatives_for ${provider} $(numeric-int64_get_profname "reference") 0 \
 			/usr/$(get_libdir)/pkgconfig/${provider}.pc ${profname}.pc \
 			/usr/include/cblas.h cblas/cblas.h
 		if [[ ${#MULTIBUILD_VARIANTS[@]} -gt 1 ]]; then
@@ -148,7 +148,7 @@ src_install() {
 			multilib_check_headers
 		fi
 	}
-	multibuild_foreach_variant run_in_build_dir fortran-int64_multilib_multibuild_wrapper my_src_install
+	multibuild_foreach_variant run_in_build_dir numeric-int64_multilib_multibuild_wrapper my_src_install
 	multilib_install_wrappers
 
 	dodoc README
