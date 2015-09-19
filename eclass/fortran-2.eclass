@@ -27,6 +27,8 @@
 #
 # FORTRAN_NEED_OPENMP=1
 
+if [[ ! ${FORTRAN_2_CLASS ]]; then
+
 # @ECLASS-VARIABLE: FORTRAN_NEED_OPENMP
 # @DESCRIPTION:
 # Set to "1" in order to automatically have the eclass abort if the fortran
@@ -254,3 +256,5 @@ case ${EAPI:-0} in
 	*) die "EAPI=${EAPI} is not supported" ;;
 esac
 
+_FORTRAN_2_ECLASS=1
+fi
