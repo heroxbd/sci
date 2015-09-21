@@ -4,9 +4,10 @@
 
 EAPI=5
 
-EBASE_PROFNAME="refblas"
-ESTATIC_MULTIBUILD="true"
-inherit fortran-2 cmake-utils alternatives-2 multibuild multilib-build toolchain-funcs fortran-int64
+NUMERIC_MODULE_NAME="refblas"
+
+#inherit fortran-2 cmake-utils alternatives-2 multibuild multilib-build toolchain-funcs fortran-int64
+inherit alternatives-2 fortran-2 numeric-int64-multibuild toolchain-funcs cmake-multilib
 
 LPN=lapack
 LPV=3.5.0
@@ -25,7 +26,7 @@ HOMEPAGE="http://www.netlib.org/lapack/"
 
 LICENSE="BSD"
 SLOT="0"
-IUSE="int64 static-libs test"
+IUSE="static-libs test"
 
 RDEPEND=""
 DEPEND="${RDEPEND}
@@ -53,23 +54,38 @@ src_prepare() {
 	sed -i \
 		-e 's:BINARY_DIR}/blas:BINARY_DIR}/${PROFNAME}:' \
 		BLAS/CMakeLists.txt || die
+
+	# MULTIBUILD_VARIANTS=$( numeric-int64_get_multibuild_variants )
 }
 
 src_configure() {
-	local MULTIBUILD_VARIANTS=( $(fortran-int64_multilib_get_enabled_abis) )
+	config() {
+		einfo ${MULTIBUILD_ID}
+	}
+	numeric-int64_multibuild_foreach_abi_variant config
+}
+
+
+_src_configure() {
 	blas_configure() {
-		local profname=$(fortran-int64_get_profname)
+		local FCFLAGS="${FCFLAGS}"
+		append-fflags $($(tc-getPKG_CONFIG) --cflags ${blas_profname})
+		append-fflags $(get_abi_CFLAGS)
+		append-fflags $(numeric-int64_get_fortran_int64_abi_fflags)
+
+		local profname=$(numeric-int64_get_profname)
 		local libname="${profname//-/_}"
+
 		local mycmakeargs=(
 			-Wno-dev
 			-DPROFNAME="${profname}"
 			-DLIBNAME="${libname}"
 			-DUSE_OPTIMIZED_BLAS=OFF
+			-DCMAKE_Fortran_FLAGS="${FCFLAGS}"
+			-DLAPACK_PKGCONFIG_FFLAGS="$(numeric-int64_get_fortran_int64_abi_fflags)"
 			$(cmake-utils_use_build test TESTING)
-			-DCMAKE_Fortran_FLAGS="$($(tc-getPKG_CONFIG) --cflags ${blas_profname}) $(get_abi_CFLAGS) $(fortran-int64_get_fortran_int64_abi_fflags) ${FCFLAGS}"
-			-DLAPACK_PKGCONFIG_FFLAGS="$(fortran-int64_get_fortran_int64_abi_fflags)"
 		)
-		if $(fortran-int64_is_static_build); then
+		if $(numeric-int64_is_static_build); then
 			mycmakeargs+=(
 				-DBUILD_SHARED_LIBS=OFF
 				-DBUILD_STATIC_LIBS=ON
@@ -80,7 +96,16 @@ src_configure() {
 				-DBUILD_STATIC_LIBS=OFF
 			)
 		fi
-		cmake-utils_src_configure
+		cmake-multilib_src_configure
+	}
+	multibuild_foreach_variant blas_configure
+}
+
+_src_configure() {
+	local MULTIBUILD_VARIANTS=( $(fortran-int64_multilib_get_enabled_abis) )
+	
+	blas_configure() {
+		:
 	}
 	multibuild_foreach_variant fortran-int64_multilib_multibuild_wrapper blas_configure
 }

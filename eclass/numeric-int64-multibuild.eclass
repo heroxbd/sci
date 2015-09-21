@@ -22,7 +22,10 @@ case ${EAPI:-0} in
 	*) die "EAPI=${EAPI} is not supported" ;;
 esac
 
-inherit fortran-2 multilib-build toolchain-funcs
+inherit eutils fortran-2 multilib-build toolchain-funcs
+
+IUSE="int32 int64"
+REQUIRED_USE="|| ( int32 int64 )"
 
 # @ECLASS-VARIABLE: NUMERIC_MODULE_NAME
 # @DESCRIPTION: The base pkg-config module name of the package being built.
@@ -35,15 +38,6 @@ inherit fortran-2 multilib-build toolchain-funcs
 # inherit ... numeric-int64-multibuild
 # @CODE
 : ${NUMERIC_MODULE_NAME:=blas}
-
-# @ECLASS-VARIABLE: ESTATIC_MULTIBUILD
-# @DEFAULT_UNSET
-# @DESCRIPTION:
-# If this is set, then do separate static multibuilds.
-# @CODE
-# ESTATIC_MULTIBUILD=1
-# inherit ... numeric-int64-multibuild
-# @CODE
 
 # @ECLASS_VARIABLE: NUMERIC_INT64_SUFFIX
 # @INTERNAL
@@ -74,8 +68,8 @@ numeric-int64_is_int64_build() {
 
 # @FUNCTION: numeric-int64_is_static_build
 # @DESCRIPTION:
-# Returns shell true if ESTATIC_MULTIBUILD is true and the current multibuild
-# is a static build, else returns shell false.
+# Returns shell true if current multibuild is a static build, 
+# else returns shell false.
 # @CODE
 #	if $(numeric-int64_is_static_build); then
 #		...
@@ -227,39 +221,53 @@ numeric-int64_get_fortran_int64_abi_fflags() {
 	echo "${abi_fflags}"
 }
 
-# @FUNCTION: numeric-int64_multilib_get_enabled_abis
-# @DESCRIPTION: Returns the array of multilib int64 and optionally static
+# @FUNCTION: numeric-int64_get_multibuild_variants
+# @DESCRIPTION: Returns the array of int64 and static
 # build combinations.  Each ebuild function that requires multibuild
 # functionalits needs to set the MULTIBUILD_VARIANTS variable to the
 # array returned by this function.
 # @CODE
 # src_prepare() {
-#	local MULTIBUILD_VARIANTS=( $(numeric-int64_multilib_get_enabled_abis) )
+#	local MULTIBUILD_VARIANTS=( $(numeric-int64_get_multibuild_variants) )
 #	multibuild_copy_sources
 # }
 # @CODE
-numeric-int64_multilib_get_enabled_abis() {
+numeric-int64_get_multibuild_variants() {
 	debug-print-function ${FUNCNAME} "${@}"
-	local MULTILIB_VARIANTS=( $(multilib_get_enabled_abis) )
-	local MULTILIB_INT64_VARIANTS=()
-	local variant variant64
-	for variant in "${MULTILIB_VARIANTS[@]}"; do
-		if use int64 && [[ "${variant}" =~ 64$ ]]; then
-			MULTILIB_INT64_VARIANTS+=( "${variant}_${NUMERIC_INT64_SUFFIX}" )
+	local OPTIONS=( int32 int64 static-libs ) option
+	local MULTIBUILD_VARIANTS=() variant
+	for option in ${OPTIONS[@]}; do
+		if use_if_iuse "${option}"; then
+			if [[ "${option}" == static-libs ]]; then
+				MULTIBUILD_VARIANTS+=( static )
+			else
+				MULTIBUILD_VARIANTS+=( ${option} )
+			fi
 		fi
-		MULTILIB_INT64_VARIANTS+=( "${variant}" )
 	done
-	local MULTIBUILD_VARIANTS=()
-	if [[ -n ${ESTATIC_MULTIBUILD} ]]; then
-		local varian64
-		for variant64 in "${MULTILIB_INT64_VARIANTS[@]}"; do
-			use static-libs && MULTIBUILD_VARIANTS+=( "${variant64}_${NUMERIC_INT64_STATIC_SUFFIX}" )
-			MULTIBUILD_VARIANTS+=( "${variant64}" )
+	if use_if_iuse static-libs; then
+		for variant in ${MULTIBUILD_VARIANTS[@]}; do
+			if [[ static != ${variant} ]]; then
+				MULTIBUILD_VARIANTS+=( static_${variant} )
+			fi
 		done
-	else
-		MULTIBUILD_VARIANTS="${MULTILIB_INT64_VARIANTS[@]}"
 	fi
 	echo "${MULTIBUILD_VARIANTS[@]}"
+}
+
+numeric-int64_get_all_abi_variants() {
+	debug-print-function ${FUNCNAME} "${@}"
+	local abi ret=() variant
+	for abi in $(multilib_get_enabled_abis); do
+		for variant in $(numeric-int64_get_multibuild_variants); do
+			if [[ ${variant} =~ int64 ]]; then
+				[[ ${abi} =~ amd64 ]] && ret+=( ${abi}_${variant} )
+			else
+				ret+=( ${abi}_${variant} )
+			fi
+		done
+	done
+	echo "${ret}"
 }
 
 # @FUNCTION: numeric-int64_ensure_blas
@@ -294,6 +302,16 @@ numeric-int64_multilib_multibuild_wrapper() {
 	local ABI="${v/_${NUMERIC_INT64_STATIC_SUFFIX}/}"
 	multilib_toolchain_setup "${ABI}"
 	"${@}"
+}
+
+numeric-int64_multibuild_foreach_variant() {
+	local MULTIBUILD_VARIANTS=$(numeric-int64_get_multibuild_variants)
+	multibuild_foreach_variant numeric-int64_multilib_multibuild_wrapper "${@}"
+}
+
+numeric-int64_multibuild_foreach_abi_variant() {
+	local MULTIBUILD_VARIANTS=( $(numeric-int64_get_all_abi_variants) )
+	multibuild_foreach_variant numeric-int64_multilib_multibuild_wrapper "${@}"
 }
 
 _NUMERIC_INT64_MULTILIB_ECLASS=1
