@@ -59,14 +59,6 @@ src_prepare() {
 }
 
 src_configure() {
-	config() {
-		einfo ${MULTIBUILD_ID}
-	}
-	numeric-int64_multibuild_foreach_abi_variant config
-}
-
-
-_src_configure() {
 	blas_configure() {
 		local FCFLAGS="${FCFLAGS}"
 		append-fflags $($(tc-getPKG_CONFIG) --cflags ${blas_profname})
@@ -96,27 +88,20 @@ _src_configure() {
 				-DBUILD_STATIC_LIBS=OFF
 			)
 		fi
-		cmake-multilib_src_configure
+		cmake-utils_src_configure
+		#einfo ${MULTIBUILD_ID}
+		#einfo ${FCFLAGS}
+		#einfo ${mycmakeargs[@]}
 	}
-	multibuild_foreach_variant blas_configure
-}
-
-_src_configure() {
-	local MULTIBUILD_VARIANTS=( $(fortran-int64_multilib_get_enabled_abis) )
-	
-	blas_configure() {
-		:
-	}
-	multibuild_foreach_variant fortran-int64_multilib_multibuild_wrapper blas_configure
+#	numeric-int64_multibuild_foreach_variant blas_configure
+	numeric-int64_multibuild_foreach_abi_variant blas_configure
 }
 
 src_compile() {
-	local MULTIBUILD_VARIANTS=( $(fortran-int64_multilib_get_enabled_abis) )
-	multibuild_foreach_variant fortran-int64_multilib_multibuild_wrapper cmake-utils_src_compile -C BLAS
+	numeric-int64_multibuild_foreach_abi_variant cmake-utils_src_compile -C BLAS
 }
 
 src_test() {
-	local MULTIBUILD_VARIANTS=( $(fortran-int64_multilib_get_enabled_abis) )
 	blas_test() {
 		_check_build_dir
 		pushd "${BUILD_DIR}/BLAS" > /dev/null
@@ -125,13 +110,12 @@ src_test() {
 		ctest ${ctestargs} || die
 		popd > /dev/null
 	}
-	multibuild_foreach_variant fortran-int64_multilib_multibuild_wrapper blas_test
+	numeric-int64_multibuild_foreach_abi_variant blas_test
 }
 
 src_install() {
-	local MULTIBUILD_VARIANTS=( $(fortran-int64_multilib_get_enabled_abis) )
-	my_src_install()  {
-		cmake-utils_src_install -C BLAS
+	numeric-int64_multibuild_foreach_abi_variant cmake-utils_src_install -C BLAS
+	blas_alternative()  {
 		if ! $(fortran-int64_is_static_build); then
 			local profname=$(fortran-int64_get_profname)
 			local provider=$(fortran-int64_get_blas_provider)
@@ -139,5 +123,10 @@ src_install() {
 				/usr/$(get_libdir)/pkgconfig/${provider}.pc ${profname}.pc
 		fi
 	}
+	numeric-int64_multibuild_foreach_abi_variant blas_alternative
+}
+
+_src_install() {
+	local MULTIBUILD_VARIANTS=( $(fortran-int64_multilib_get_enabled_abis) )
 	multibuild_foreach_variant fortran-int64_multilib_multibuild_wrapper my_src_install
 }
