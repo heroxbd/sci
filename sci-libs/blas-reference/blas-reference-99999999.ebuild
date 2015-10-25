@@ -115,16 +115,23 @@ src_test() {
 
 src_install() {
 	numeric-int64_multibuild_foreach_abi_variant cmake-utils_src_install -C BLAS
-	blas_alternative()  {
-		if ! $(fortran-int64_is_static_build); then
-			local profname=$(fortran-int64_get_profname)
-			local provider=$(fortran-int64_get_blas_provider)
-			alternatives_for ${provider} $(fortran-int64_get_profname "reference") 0 \
-				/usr/$(get_libdir)/pkgconfig/${provider}.pc ${profname}.pc
+	pc_file()  {
+		printf "/usr/$(get_libdir)/pkgconfig/${1}.pc ${2}.pc " >> ${3}
+	}
+	blas_alternative() {
+		if ! $(numeric-int64_is_static_build); then
+			local alternative=$(numeric-int64_get_blas_alternative)
+			local profname=$(numeric-int64_get_profname)
+			numeric-int64_multibuild_foreach_abi \
+				pc_file ${alternative} ${profname} "${T}"/alternative-${alternative}.sh
+			alternatives_for ${alternative} $(numeric-int64_get_profname "reference") 0 \
+				$(cat "${T}"/alternative-${alternative}.sh)
 		fi
 	}
-	numeric-int64_multibuild_foreach_abi_variant blas_alternative
+	numeric-int64_multibuild_foreach_variant blas_alternative
 }
+
+
 
 _src_install() {
 	local MULTIBUILD_VARIANTS=( $(fortran-int64_multilib_get_enabled_abis) )

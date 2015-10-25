@@ -118,71 +118,71 @@ numeric-int64_get_profname() {
 	echo "${profname}"
 }
 
-# @FUNCTION: _numeric-int64_get_numeric_provider
+# @FUNCTION: _numeric-int64_get_numeric_alternative
 # @INTERNAL
-numeric-int64_get_blas_provider() {
+_numeric-int64_get_numeric_alternative () {
 	debug-print-function ${FUNCNAME} "${@}"
-	local provider_name="${1}"
+	local alternative_name="${1}"
 	if $(numeric-int64_is_int64_build); then
-		provider_name+="-${NUMERIC_INT64_SUFFIX}"
+		alternative_name+="-${NUMERIC_INT64_SUFFIX}"
 	fi
-	echo "${provider_name}"
+	echo "${alternative_name}"
 }
 
-# @FUNCTION: numeric-int64_get_blas_provider
-# @DESCRIPTION: Returns the eselect blas provider for the current build.
+# @FUNCTION: numeric-int64_get_blas_alternative
+# @DESCRIPTION: Returns the eselect blas alternative for the current build.
 # Which is blas-int64 if called from an int64 build, or blas otherwise.
 # @CODE
 #	local profname=$(numeric-int64_get_profname)
-#	local provider=$(numeric-int64_get_blas_provider)
-#	alternatives_for ${provider} $(numeric-int64_get_profname "reference") 0 \
-#		/usr/$(get_libdir)/pkgconfig/${provider}.pc ${profname}.pc
+#	local alternative=$(numeric-int64_get_blas_alternative)
+#	alternatives_for ${alternative} $(numeric-int64_get_profname "reference") 0 \
+#		/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${profname}.pc
 # @CODE
-numeric-int64_get_blas_provider() {
+numeric-int64_get_blas_alternative() {
 	debug-print-function ${FUNCNAME} "${@}"
-	_numeric-int64_get_numeric_provider blas
+	_numeric-int64_get_numeric_alternative blas
 }
 
-# @FUNCTION: numeric-int64_get_cblas_provider
-# @DESCRIPTION: Returns the eselect cblas provider for the current build.
+# @FUNCTION: numeric-int64_get_cblas_alternative
+# @DESCRIPTION: Returns the eselect cblas alternative for the current build.
 # Which is cblas-int64 if called from an int64 build, or cblas otherwise.
 # @CODE
 #	local profname=$(numeric-int64_get_profname)
-#	local provider=$(numeric-int64_get_cblas_provider)
-#	alternatives_for ${provider} $(numeric-int64_get_profname "reference") 0 \
-#		/usr/$(get_libdir)/pkgconfig/${provider}.pc ${profname}.pc
+#	local alternative=$(numeric-int64_get_cblas_alternative)
+#	alternatives_for ${alternative} $(numeric-int64_get_profname "reference") 0 \
+#		/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${profname}.pc
 # @CODE
-numeric-int64_get_cblas_provider() {
+numeric-int64_get_cblas_alternative() {
 	debug-print-function ${FUNCNAME} "${@}"
-	_numeric-int64_get_numeric_provider cblas
+	_numeric-int64_get_numeric_alternative cblas
 }
 
-# @FUNCTION: numeric-int64_get_xblas_provider
-# @DESCRIPTION: Returns the eselect cblas provider for the current build.
+# @FUNCTION: numeric-int64_get_xblas_alternative
+# @DESCRIPTION: Returns the eselect cblas alternative for the current build.
 # Which is cblas-int64 if called from an int64 build, or cblas otherwise.
 # @CODE
 #	local profname=$(numeric-int64_get_profname)
-#	local provider=$(numeric-int64_get_cblas_provider)
-#	alternatives_for ${provider} $(numeric-int64_get_profname "reference") 0 \
-#		/usr/$(get_libdir)/pkgconfig/${provider}.pc ${profname}.pc
+#	local alternative=$(numeric-int64_get_cblas_alternative)
+#	alternatives_for ${alternative} $(numeric-int64_get_profname "reference") 0 \
+#		/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${profname}.pc
 # @CODE
-numeric-int64_get_xblas_provider() {
+numeric-int64_get_xblas_alternative() {
 	debug-print-function ${FUNCNAME} "${@}"
-	_numeric-int64_get_numeric_provider xblas
+	_numeric-int64_get_numeric_alternative xblas
 }
 
-# @FUNCTION: numeric-int64_get_lapack_provider
-# @DESCRIPTION: Returns the eselect lapack provider for the current build.
+# @FUNCTION: numeric-int64_get_lapack_alternative
+# @DESCRIPTION: Returns the eselect lapack alternative for the current build.
 # Which is lapack-int64 if called from an int64 build, or lapack otherwise.
 # @CODE
 #	local profname=$(numeric-int64_get_profname)
-#	local provider=$(numeric-int64_get_lapack_provider)
-#	alternatives_for ${provider} $(numeric-int64_get_profname "reference") 0 \
-#		/usr/$(get_libdir)/pkgconfig/${provider}.pc ${profname}.pc
+#	local alternative=$(numeric-int64_get_lapack_alternative)
+#	alternatives_for ${alternative} $(numeric-int64_get_profname "reference") 0 \
+#		/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${profname}.pc
 # @CODE
-numeric-int64_get_lapack_provider() {
+numeric-int64_get_lapack_alternative() {
 	debug-print-function ${FUNCNAME} "${@}"
-	_numeric-int64_get_numeric_provider lapack
+	_numeric-int64_get_numeric_alternative lapack
 }
 
 # @FUNCTION: numeric-int64_get_blas_module_name
@@ -197,8 +197,8 @@ numeric-int64_get_lapack_provider() {
 # @CODE
 numeric-int64_get_blas_module_name() {
 	debug-print-function ${FUNCNAME} "${@}"
-	local blas_provider=$(numeric-int64_get_blas_provider)
-	local blas_symlinks=( $(eselect "${blas_provider}" files) )
+	local blas_alternative=$(numeric-int64_get_blas_alternative)
+	local blas_symlinks=( $(eselect "${blas_alternative}" files) )
 	local blas_prof_symlink="$(readlink -f "${blas_symlinks[0]}")"
 	local blas_prof_file="${blas_prof_symlink##*/}"
 	echo "${blas_prof_file%.pc}"
@@ -298,6 +298,23 @@ numeric-int64_ensure_blas() {
 	done
 }
 
+numeric-int64_install_alternative() {
+	pc_file()  {
+	   	printf "/usr/$(get_libdir)/pkgconfig/${1}.pc ${2}.pc " >> ${3}
+	}
+	blas_alternative() {
+	   	if ! $(numeric-int64_is_static_build); then
+			local alternative=$(numeric-int64_get_blas_alternative)
+	   		local profname=$(numeric-int64_get_profname)
+	   		numeric-int64_multibuild_foreach_abi \
+			   	pc_file ${alternative} ${profname} "${T}"/alternative-${alternative}.sh
+			alternatives_for ${alternative} $(numeric-int64_get_profname "reference") 0 \
+			   	$(cat "${T}"/alternative-${alternative}.sh)
+	   	fi
+	}
+	numeric-int64_multibuild_foreach_variant blas_alternative
+}
+
 # @FUNCTION: numeric-int64_multilib_multibuild_wrapper
 # @USAGE: <argv>...
 # @DESCRIPTION:
@@ -314,14 +331,22 @@ numeric-int64_multilib_multibuild_wrapper() {
 	"${@}"
 }
 
+# each ABI
+numeric-int64_multibuild_foreach_abi() {
+#	debug-print-function ${FUNCNAME} "${@}"
+	multilib_foreach_abi "${@}"
+}
+
 # each variant 32, 64 and static
 numeric-int64_multibuild_foreach_variant() {
+	debug-print-function ${FUNCNAME} "${@}"
 	local MULTIBUILD_VARIANTS=( $(numeric-int64_get_multibuild_variants) )
 	multibuild_foreach_variant numeric-int64_multilib_multibuild_wrapper "${@}"
 }
 
 # each variant including ABI
 numeric-int64_multibuild_foreach_abi_variant() {
+	debug-print-function ${FUNCNAME} "${@}"
 	local MULTIBUILD_VARIANTS=( $(numeric-int64_get_all_abi_variants) )
 #einfo "MULTIBUILD_VARIANTS are ${MULTIBUILD_VARIANTS[@]}"
 	multibuild_foreach_variant numeric-int64_multilib_multibuild_wrapper "${@}"
