@@ -298,19 +298,22 @@ numeric-int64_ensure_blas() {
 	done
 }
 
+# @FUNCTION: numeric-int64_install_all_alternative
+# @USAGE: 
+# @DESCRIPTION: 
 numeric-int64_install_alternative() {
 	pc_file()  {
-	   	printf "/usr/$(get_libdir)/pkgconfig/${1}.pc ${2}.pc " >> ${3}
+		printf "/usr/$(get_libdir)/pkgconfig/${1}.pc ${2}.pc " >> ${3}
 	}
 	blas_alternative() {
-	   	if ! $(numeric-int64_is_static_build); then
+		if ! $(numeric-int64_is_static_build); then
 			local alternative=$(numeric-int64_get_blas_alternative)
-	   		local profname=$(numeric-int64_get_profname)
-	   		numeric-int64_multibuild_foreach_abi \
+			local profname=$(numeric-int64_get_profname)
+			numeric-int64_multibuild_foreach_abi \
 			   	pc_file ${alternative} ${profname} "${T}"/alternative-${alternative}.sh
 			alternatives_for ${alternative} $(numeric-int64_get_profname "reference") 0 \
 			   	$(cat "${T}"/alternative-${alternative}.sh)
-	   	fi
+		fi
 	}
 	numeric-int64_multibuild_foreach_variant blas_alternative
 }
