@@ -298,24 +298,27 @@ numeric-int64_ensure_blas() {
 	done
 }
 
-# @FUNCTION: numeric-int64_install_all_alternative
+# @FUNCTION: numeric-int64_install_pkgconfig_alternative
 # @USAGE: 
 # @DESCRIPTION: 
-numeric-int64_install_alternative() {
+numeric-int64_install_pkgconfig_alternative() {
+	debug-print-function ${FUNCNAME} "${@}"
 	pc_file()  {
-		printf "/usr/$(get_libdir)/pkgconfig/${1}.pc ${2}.pc " >> ${3}
+		numeric-int64_is_static_build && return
+		local alternative=$(numeric-int64_get_blas_alternative)
+		local profname=$(numeric-int64_get_profname)
+		printf "/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${profname}.pc " \
+			>> "${T}"/alternative-${alternative}.sh
 	}
-	blas_alternative() {
-		if ! $(numeric-int64_is_static_build); then
-			local alternative=$(numeric-int64_get_blas_alternative)
-			local profname=$(numeric-int64_get_profname)
-			numeric-int64_multibuild_foreach_abi \
-			   	pc_file ${alternative} ${profname} "${T}"/alternative-${alternative}.sh
-			alternatives_for ${alternative} $(numeric-int64_get_profname "reference") 0 \
-			   	$(cat "${T}"/alternative-${alternative}.sh)
-		fi
+	install() {
+		numeric-int64_is_static_build && return
+		local alternative=$(numeric-int64_get_blas_alternative)
+		local profname=$(numeric-int64_get_profname)
+		alternatives_for ${alternative} $(numeric-int64_get_profname "reference") 0 \
+			$(cat "${T}"/alternative-${alternative}.sh)
 	}
-	numeric-int64_multibuild_foreach_variant blas_alternative
+	numeric-int64_multibuild_foreach_abi_variant pc_file
+	numeric-int64_multibuild_foreach_variant install
 }
 
 # @FUNCTION: numeric-int64_multilib_multibuild_wrapper
@@ -348,6 +351,7 @@ numeric-int64_multibuild_foreach_variant() {
 }
 
 # each variant including ABI
+# args: --no-static
 numeric-int64_multibuild_foreach_abi_variant() {
 	debug-print-function ${FUNCNAME} "${@}"
 	local MULTIBUILD_VARIANTS=( $(numeric-int64_get_all_abi_variants) )
