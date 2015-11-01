@@ -211,12 +211,12 @@ numeric-int64_get_blas_module_name() {
 # otherwise.
 # @CODE
 # src_configure() {
-#	local MULTIBUILD_VARIANTS=( $(numeric-int64_multilib_get_enabled_abis) )
+#	local MULTIBUILD_VARIANTS=( $(numeric-int64-multilib_get_enabled_abis) )
 #	my_configure() {
 #		export FCFLAGS="${FCFLAGS} $(get_abi_CFLAGS) $(numeric-int64_get_fortran_int64_abi_fflags)"
 #		econf $(use_enable fortran)
 #	}
-#	multibuild_foreach_variant run_in_build_dir numeric-int64_multilib_multibuild_wrapper my_configure
+#	multibuild_foreach_variant run_in_build_dir numeric-int64-multibuild_multilib_wrapper my_configure
 # }
 # @CODE
 numeric-int64_get_fortran_int64_abi_fflags() {
@@ -289,7 +289,7 @@ numeric-int64_get_all_abi_variants() {
 #	...
 # @CODE
 numeric-int64_ensure_blas() {
-	local MULTILIB_INT64_VARIANTS=( $(numeric-int64_multilib_get_enabled_abis) )
+	local MULTILIB_INT64_VARIANTS=( $(numeric-int64-multilib_get_enabled_abis) )
 	local MULTIBUILD_ID
 	for MULTIBUILD_ID in "${MULTILIB_INT64_VARIANTS[@]}"; do
 		local blas_profname=$(numeric-int64_get_blas_module_name)
@@ -298,10 +298,10 @@ numeric-int64_ensure_blas() {
 	done
 }
 
-# @FUNCTION: numeric-int64_install_pkgconfig_alternative
+# @FUNCTION: numeric-int64-multibuild_install_pkgconfig_alternative
 # @USAGE: 
 # @DESCRIPTION: 
-numeric-int64_install_pkgconfig_alternative() {
+numeric-int64-multibuild_install_pkgconfig_alternative() {
 	debug-print-function ${FUNCNAME} "${@}"
 	pc_file()  {
 		numeric-int64_is_static_build && return
@@ -317,18 +317,18 @@ numeric-int64_install_pkgconfig_alternative() {
 		alternatives_for ${alternative} $(numeric-int64_get_profname "reference") 0 \
 			$(cat "${T}"/alternative-${alternative}.sh)
 	}
-	numeric-int64_multibuild_foreach_abi_variant pc_file
-	numeric-int64_multibuild_foreach_variant install
+	numeric-int64-multibuild_foreach_abi_variant pc_file
+	numeric-int64-multibuild_foreach_variant install
 }
 
-# @FUNCTION: numeric-int64_multilib_multibuild_wrapper
+# @FUNCTION: numeric-int64-multibuild_multilib_wrapper
 # @USAGE: <argv>...
 # @DESCRIPTION:
 # Initialize the environment for ABI selected for multibuild.
 # @CODE
-#	multibuild_foreach_variant run_in_build_dir numeric-int64_multilib_multibuild_wrapper my_src_install
+#	multibuild_foreach_variant run_in_build_dir numeric-int64-multibuild_multilib_wrapper my_src_install
 # @CODE
-numeric-int64_multilib_multibuild_wrapper() {
+numeric-int64-multibuild_multilib_wrapper() {
 	debug-print-function ${FUNCNAME} "${@}"
 	local v="${MULTIBUILD_VARIANT/_${NUMERIC_INT32_SUFFIX}/}"
 	local v="${v/_${NUMERIC_INT64_SUFFIX}/}"
@@ -338,25 +338,25 @@ numeric-int64_multilib_multibuild_wrapper() {
 }
 
 # each ABI
-numeric-int64_multibuild_foreach_abi() {
+numeric-int64-multibuild_foreach_abi() {
 #	debug-print-function ${FUNCNAME} "${@}"
 	multilib_foreach_abi "${@}"
 }
 
 # each variant 32, 64 and static
-numeric-int64_multibuild_foreach_variant() {
+numeric-int64-multibuild_foreach_variant() {
 	debug-print-function ${FUNCNAME} "${@}"
 	local MULTIBUILD_VARIANTS=( $(numeric-int64_get_multibuild_variants) )
-	multibuild_foreach_variant numeric-int64_multilib_multibuild_wrapper "${@}"
+	multibuild_foreach_variant numeric-int64-multibuild_multilib_wrapper "${@}"
 }
 
 # each variant including ABI
 # args: --no-static
-numeric-int64_multibuild_foreach_abi_variant() {
+numeric-int64-multibuild_foreach_abi_variant() {
 	debug-print-function ${FUNCNAME} "${@}"
 	local MULTIBUILD_VARIANTS=( $(numeric-int64_get_all_abi_variants) )
 #einfo "MULTIBUILD_VARIANTS are ${MULTIBUILD_VARIANTS[@]}"
-	multibuild_foreach_variant numeric-int64_multilib_multibuild_wrapper "${@}"
+	multibuild_foreach_variant numeric-int64-multibuild_multilib_wrapper "${@}"
 }
 
 _NUMERIC_INT64_MULTILIB_ECLASS=1

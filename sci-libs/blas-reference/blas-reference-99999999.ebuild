@@ -55,7 +55,7 @@ src_prepare() {
 		-e 's:BINARY_DIR}/blas:BINARY_DIR}/${PROFNAME}:' \
 		BLAS/CMakeLists.txt || die
 
-#numeric-int64_multibuild_foreach_variant
+#numeric-int64-multibuild_foreach_variant
 }
 
 src_configure() {
@@ -90,11 +90,11 @@ src_configure() {
 		fi
 		cmake-utils_src_configure
 	}
-	numeric-int64_multibuild_foreach_abi_variant blas_configure
+	numeric-int64-multibuild_foreach_abi_variant blas_configure
 }
 
 src_compile() {
-	numeric-int64_multibuild_foreach_abi_variant cmake-utils_src_compile -C BLAS
+	numeric-int64-multibuild_foreach_abi_variant cmake-utils_src_compile -C BLAS
 }
 
 src_test() {
@@ -106,12 +106,10 @@ src_test() {
 		ctest ${ctestargs} || die
 		popd > /dev/null
 	}
-	numeric-int64_multibuild_foreach_abi_variant blas_test
+	numeric-int64-multibuild_foreach_abi_variant blas_test
 }
 
 src_install() {
-	numeric-int64_multibuild_foreach_abi_variant cmake-utils_src_install -C BLAS
-#	numeric-int64_multibuild_foreach_variant numeric-int64_install_pkgconfig_alternative
-numeric-int64_install_pkgconfig_alternative
-
+	numeric-int64-multibuild_foreach_abi_variant cmake-utils_src_install -C BLAS
+	numeric-int64-multibuild_install_pkgconfig_alternative
 }
