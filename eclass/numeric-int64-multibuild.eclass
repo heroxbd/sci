@@ -16,20 +16,20 @@
 
 if [[ ! ${_NUMERIC_INT64_MULTILIB_ECLASS} ]]; then
 
-# EAPI=4 is required for meaningful MULTILIB_USEDEP.
+# EAPI=5 is required for meaningful MULTILIB_USEDEP.
 case ${EAPI:-0} in
 	5) ;;
 	*) die "EAPI=${EAPI} is not supported" ;;
 esac
 
-inherit eutils fortran-2 multilib-build toolchain-funcs
+inherit eutils fortran-2 multilib-build numeric toolchain-funcs
 
 IUSE="int32 int64"
 REQUIRED_USE="|| ( int32 int64 )"
 
 # @ECLASS-VARIABLE: NUMERIC_MODULE_NAME
 # @DESCRIPTION: The base pkg-config module name of the package being built.
-# NUMERIC_MODULE_NAME is used by the numeric-int64_get_profname function to
+# NUMERIC_MODULE_NAME is used by the numeric-int64_get_module_name function to
 # determine the pkg-config module name based on whether the package
 # has dynamic, threads or openmp USE flags and if so, if the user has
 # turned them or, and if the current multibuild is a int64 build or not.
@@ -88,34 +88,34 @@ numeric-int64_is_static_build() {
 	fi
 }
 
-# @FUNCTION: numeric-int64_get_profname
-# @USAGE: [<profname>]
-# @DESCRIPTION: Return the pkgbuild profile name, without the .pc extension,
+# @FUNCTION: numeric-int64_get_module_name
+# @USAGE: [<module_name>]
+# @DESCRIPTION: Return the numeric module name, without the .pc extension,
 # for the current fortran int64 build.  If the current build is not an int64
 # build, and the ebuild does not have dynamic, threads or openmp USE flags or
-# they are disabled, then the profname is ${NUMERIC_MODULE_NAME} or <profname> if
-# <profname> is specified.
+# they are disabled, then the module_name is ${NUMERIC_MODULE_NAME} or 
+# <module_name> if <module_name> is specified.
 #
-# Takes an optional <profname> parameter.  If no <profname> is specified, uses
-# ${NUMERIC_MODULE_NAME} as the base to calculate the profname for the current
-# build.
-numeric-int64_get_profname() {
+# Takes an optional <module_name> parameter.  If no <module_name> is specified,
+# uses ${NUMERIC_MODULE_NAME} as the base to calculate the module_name for the
+# current build.
+numeric-int64_get_module_name() {
 	debug-print-function ${FUNCNAME} "${@}"
-	local profname="${1:-${NUMERIC_MODULE_NAME}}"
+	local module_name="${1:-${NUMERIC_MODULE_NAME}}"
 	if has dynamic ${IUSE} && use dynamic; then
-		profname+="-dynamic"
+		module_name+="-dynamic"
 	fi
 	if $(numeric-int64_is_int64_build); then
-		profname+="-${NUMERIC_INT64_SUFFIX}"
+		module_name+="-${NUMERIC_INT64_SUFFIX}"
 	fi
 	# choose posix threads over openmp when the two are set
 	# yet to see the need of having the two profiles simultaneously
 	if has threads ${IUSE} && use threads; then
-		profname+="-threads"
+		module_name+="-threads"
 	elif has openmp ${IUSE} && use openmp; then
-		profname+="-openmp"
+		module_name+="-openmp"
 	fi
-	echo "${profname}"
+	echo "${module_name}"
 }
 
 # @FUNCTION: _numeric-int64_get_numeric_alternative
@@ -133,10 +133,10 @@ _numeric-int64_get_numeric_alternative () {
 # @DESCRIPTION: Returns the eselect blas alternative for the current build.
 # Which is blas-int64 if called from an int64 build, or blas otherwise.
 # @CODE
-#	local profname=$(numeric-int64_get_profname)
+#	local module_name=$(numeric-int64_get_module_name)
 #	local alternative=$(numeric-int64_get_blas_alternative)
-#	alternatives_for ${alternative} $(numeric-int64_get_profname "reference") 0 \
-#		/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${profname}.pc
+#	alternatives_for ${alternative} $(numeric-int64_get_module_name "reference") 0 \
+#		/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${module_name}.pc
 # @CODE
 numeric-int64_get_blas_alternative() {
 	debug-print-function ${FUNCNAME} "${@}"
@@ -147,10 +147,10 @@ numeric-int64_get_blas_alternative() {
 # @DESCRIPTION: Returns the eselect cblas alternative for the current build.
 # Which is cblas-int64 if called from an int64 build, or cblas otherwise.
 # @CODE
-#	local profname=$(numeric-int64_get_profname)
+#	local module_name=$(numeric-int64_get_module_name)
 #	local alternative=$(numeric-int64_get_cblas_alternative)
-#	alternatives_for ${alternative} $(numeric-int64_get_profname "reference") 0 \
-#		/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${profname}.pc
+#	alternatives_for ${alternative} $(numeric-int64_get_module_name "reference") 0 \
+#		/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${module_name}.pc
 # @CODE
 numeric-int64_get_cblas_alternative() {
 	debug-print-function ${FUNCNAME} "${@}"
@@ -161,10 +161,10 @@ numeric-int64_get_cblas_alternative() {
 # @DESCRIPTION: Returns the eselect cblas alternative for the current build.
 # Which is cblas-int64 if called from an int64 build, or cblas otherwise.
 # @CODE
-#	local profname=$(numeric-int64_get_profname)
+#	local module_name=$(numeric-int64_get_module_name)
 #	local alternative=$(numeric-int64_get_cblas_alternative)
-#	alternatives_for ${alternative} $(numeric-int64_get_profname "reference") 0 \
-#		/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${profname}.pc
+#	alternatives_for ${alternative} $(numeric-int64_get_module_name "reference") 0 \
+#		/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${module_name}.pc
 # @CODE
 numeric-int64_get_xblas_alternative() {
 	debug-print-function ${FUNCNAME} "${@}"
@@ -175,10 +175,10 @@ numeric-int64_get_xblas_alternative() {
 # @DESCRIPTION: Returns the eselect lapack alternative for the current build.
 # Which is lapack-int64 if called from an int64 build, or lapack otherwise.
 # @CODE
-#	local profname=$(numeric-int64_get_profname)
+#	local module_name=$(numeric-int64_get_module_name)
 #	local alternative=$(numeric-int64_get_lapack_alternative)
-#	alternatives_for ${alternative} $(numeric-int64_get_profname "reference") 0 \
-#		/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${profname}.pc
+#	alternatives_for ${alternative} $(numeric-int64_get_module_name "reference") 0 \
+#		/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${module_name}.pc
 # @CODE
 numeric-int64_get_lapack_alternative() {
 	debug-print-function ${FUNCNAME} "${@}"
@@ -190,7 +190,7 @@ numeric-int64_get_lapack_alternative() {
 # for the currently selected blas-int64 module if we are performing an int64
 # build, or the currently selected blas module otherwise.
 # @CODE
-#	cat <<-EOF > ${profname}.pc
+#	cat <<-EOF > ${module_name}.pc
 #		...
 #		Requires: $(numeric-int64_get_blas_module_name)
 #		...
@@ -204,6 +204,24 @@ numeric-int64_get_blas_module_name() {
 	echo "${blas_prof_file%.pc}"
 }
 
+# @FUNCTION: numeric-int64_get_xblas_module_name
+# @DESCRIPTION: Returns the xblas pkg-config file name, without the .pc extension,
+# for the current build.  Which is xblas-int64 if we are performing an int64
+# build, or xblas otherwise.
+# @CODE
+#	cat <<-EOF > ${module_name}.pc
+#		...
+#		Requires: $(fortran-int64_get_xblas_module_name)
+#		...
+# @CODE
+numeric-int64_get_xblas_module_name() {
+	debug-print-function ${FUNCNAME} "${@}"
+	local xblas_provider="xblas"
+	if $(fortran-int64_is_int64_build); then
+		xblas_provider+="-${INT64_SUFFIX}"
+	fi
+	echo "${xblas_provider}"
+}
 
 # @FUNCTION: numeric-int64_get_fortran_int64_abi_fflags
 # @DESCRIPTION: Return the Fortran compiler flag to enable 64 bit integers for
@@ -221,9 +239,7 @@ numeric-int64_get_blas_module_name() {
 # @CODE
 numeric-int64_get_fortran_int64_abi_fflags() {
 	debug-print-function ${FUNCNAME} "${@}"
-	local abi_fflags=""
-	$(numeric-int64_is_int64_build) && abi_fflags="$(fortran_int64_abi_fflags)"
-	echo "${abi_fflags}"
+	$(numeric-int64_is_int64_build) && echo "$(fortran_int64_abi_fflags)"
 }
 
 # @FUNCTION: numeric-int64_get_multibuild_variants
@@ -292,9 +308,9 @@ numeric-int64_ensure_blas() {
 	local MULTILIB_INT64_VARIANTS=( $(numeric-int64-multilib_get_enabled_abis) )
 	local MULTIBUILD_ID
 	for MULTIBUILD_ID in "${MULTILIB_INT64_VARIANTS[@]}"; do
-		local blas_profname=$(numeric-int64_get_blas_module_name)
-		$(tc-getPKG_CONFIG) --exists "${blas_profname}" \
-			|| die "${PN} requires the pkgbuild module ${blas_profname}"
+		local blas_module_name=$(numeric-int64_get_blas_module_name)
+		$(tc-getPKG_CONFIG) --exists "${blas_module_name}" \
+			|| die "${PN} requires the pkgbuild module ${blas_module_name}"
 	done
 }
 
@@ -306,15 +322,15 @@ numeric-int64-multibuild_install_pkgconfig_alternative() {
 	pc_file()  {
 		numeric-int64_is_static_build && return
 		local alternative=$(numeric-int64_get_blas_alternative)
-		local profname=$(numeric-int64_get_profname)
-		printf "/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${profname}.pc " \
+		local module_name=$(numeric-int64_get_module_name)
+		printf "/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${module_name}.pc " \
 			>> "${T}"/alternative-${alternative}.sh
 	}
 	install() {
 		numeric-int64_is_static_build && return
 		local alternative=$(numeric-int64_get_blas_alternative)
-		local profname=$(numeric-int64_get_profname)
-		alternatives_for ${alternative} $(numeric-int64_get_profname "reference") 0 \
+		local module_name=$(numeric-int64_get_module_name)
+		alternatives_for ${alternative} $(numeric-int64_get_module_name "reference") 0 \
 			$(cat "${T}"/alternative-${alternative}.sh)
 	}
 	numeric-int64-multibuild_foreach_abi_variant pc_file
