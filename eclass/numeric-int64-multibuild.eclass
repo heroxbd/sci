@@ -25,20 +25,9 @@ esac
 
 inherit eutils fortran-2 multilib-build numeric toolchain-funcs
 
-IUSE="int32 int64"
-REQUIRED_USE="|| ( int32 int64 )"
-
-# @ECLASS-VARIABLE: NUMERIC_MODULE_NAME
-# @DESCRIPTION: The base pkg-config module name of the package being built.
-# NUMERIC_MODULE_NAME is used by the numeric-int64_get_module_name function to
-# determine the pkg-config module name based on whether the package
-# has dynamic, threads or openmp USE flags and if so, if the user has
-# turned them or, and if the current multibuild is a int64 build or not.
-# @CODE
-# NUMERIC_MODULE_NAME="openblas"
-# inherit ... numeric-int64-multibuild
-# @CODE
-: ${NUMERIC_MODULE_NAME:=blas}
+IUSE="+int32 int64"
+REQUIRED_USE="
+	|| ( int32 int64 )"
 
 # @ECLASS_VARIABLE: NUMERIC_INT32_SUFFIX
 # @INTERNAL

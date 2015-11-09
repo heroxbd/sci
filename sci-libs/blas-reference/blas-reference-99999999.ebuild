@@ -4,32 +4,29 @@
 
 EAPI=5
 
+PYTHON_COMPAT=( python2_7 )
+
 NUMERIC_MODULE_NAME="refblas"
 
-#inherit fortran-2 cmake-utils alternatives-2 multibuild multilib-build toolchain-funcs fortran-int64
-inherit alternatives-2 fortran-2 numeric-int64-multibuild toolchain-funcs cmake-multilib
+inherit alternatives-2 cmake-utils fortran-2 numeric-int64-multibuild python-any-r1 toolchain-funcs subversion
 
 LPN=lapack
 LPV=3.5.0
 
-if [[ ${PV} == "99999999" ]] ; then
-	ESVN_REPO_URI="https://icl.cs.utk.edu/svn/lapack-dev/${LPN}/trunk"
-	inherit subversion
-	KEYWORDS=""
-else
-	SRC_URI="http://www.netlib.org/${LPN}/${LPN}-${LPV}.tgz"
-	KEYWORDS="~amd64 ~x86 ~amd64-linux ~x86-linux"
-fi
-
 DESCRIPTION="Reference implementation of BLAS"
 HOMEPAGE="http://www.netlib.org/lapack/"
+ESVN_REPO_URI="https://icl.cs.utk.edu/svn/lapack-dev/${LPN}/trunk"
 
 LICENSE="BSD"
 SLOT="0"
+KEYWORDS=""
 IUSE="static-libs test"
+
+REQUIRED_USE="test? ( ${PYTHON_REQUIRED_USE} )"
 
 RDEPEND=""
 DEPEND="${RDEPEND}
+	test? ( ${PYTHON_DEPS} )
 	virtual/pkgconfig"
 PDEPEND=">=virtual/blas-2.1-r3[int64?]"
 
@@ -54,8 +51,6 @@ src_prepare() {
 	sed -i \
 		-e 's:BINARY_DIR}/blas:BINARY_DIR}/${PROFNAME}:' \
 		BLAS/CMakeLists.txt || die
-
-#numeric-int64-multibuild_foreach_variant
 }
 
 src_configure() {
@@ -65,7 +60,7 @@ src_configure() {
 		append-fflags $(get_abi_CFLAGS)
 		append-fflags $(numeric-int64_get_fortran_int64_abi_fflags)
 
-		local profname=$(numeric-int64_get_profname)
+		local profname=$(numeric-int64_get_module_name)
 		local libname="${profname//-/_}"
 
 		local mycmakeargs=(
@@ -94,19 +89,17 @@ src_configure() {
 }
 
 src_compile() {
-	numeric-int64-multibuild_foreach_abi_variant cmake-utils_src_compile -C BLAS
+	local each target_dirs=( BLAS )
+	use test && target_dirs+=( TESTING )
+	for each in ${target_dirs}; do
+		numeric-int64-multibuild_foreach_abi_variant \
+			cmake-utils_src_compile -C ${each}
+	done
+
 }
 
 src_test() {
-	blas_test() {
-		_check_build_dir
-		pushd "${BUILD_DIR}/BLAS" > /dev/null
-		local ctestargs
-		[[ -n ${TEST_VERBOSE} ]] && ctestargs="--extra-verbose --output-on-failure"
-		ctest ${ctestargs} || die
-		popd > /dev/null
-	}
-	numeric-int64-multibuild_foreach_abi_variant blas_test
+	numeric-int64-multibuild_foreach_abi_variant cmake-utils_src_test
 }
 
 src_install() {
