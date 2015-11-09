@@ -1,4 +1,4 @@
-# Copyright 1999-2014 Gentoo Foundation
+# Copyright 1999-2015 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 # $Id$
 
@@ -104,5 +104,5 @@ src_test() {
 
 src_install() {
 	numeric-int64-multibuild_foreach_abi_variant cmake-utils_src_install -C BLAS
-	numeric-int64-multibuild_install_pkgconfig_alternative
+	numeric-int64-multibuild_install_pkgconfig_alternative blas reference
 }

@@ -110,7 +110,7 @@ numeric-int64_get_module_name() {
 
 # @FUNCTION: _numeric-int64_get_numeric_alternative
 # @INTERNAL
-_numeric-int64_get_numeric_alternative () {
+_numeric-int64_get_numeric_alternative() {
 	debug-print-function ${FUNCNAME} "${@}"
 	local alternative_name="${1}"
 	if $(numeric-int64_is_int64_build); then
@@ -191,7 +191,7 @@ numeric-int64_get_lapack_alternative() {
 # @CODE
 numeric-int64_get_blas_module_name() {
 	debug-print-function ${FUNCNAME} "${@}"
-	local blas_alternative=$(numeric-int64_get_blas_alternative)
+	local blas_alternative=$(_numeric-int64_)
 	local blas_symlinks=( $(eselect "${blas_alternative}" files) )
 	local blas_prof_symlink="$(readlink -f "${blas_symlinks[0]}")"
 	local blas_prof_file="${blas_prof_symlink##*/}"
@@ -318,13 +318,15 @@ numeric-int64_ensure_blas() {
 }
 
 # @FUNCTION: numeric-int64-multibuild_install_pkgconfig_alternative
+# @USAGE: <alternative name> <provider name>
 # @DESCRIPTION:
-# Install 
+# Install pkg-config file for all provifers for all multilib ABIs.
 numeric-int64-multibuild_install_pkgconfig_alternative() {
 	debug-print-function ${FUNCNAME} "${@}"
+	[[ $# -lt 2 ]] && die "${FUNCNAME} needs two arguments"
 	pc_file()  {
 		numeric-int64_is_static_build && return
-		local alternative=$(numeric-int64_get_blas_alternative)
+		local alternative=$(_numeric-int64_get_numeric_alternative "$1")
 		local module_name=$(numeric-int64_get_module_name)
 		printf \
 			"/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${module_name}.pc " \
@@ -332,14 +334,14 @@ numeric-int64-multibuild_install_pkgconfig_alternative() {
 	}
 	install() {
 		numeric-int64_is_static_build && return
-		local alternative=$(numeric-int64_get_blas_alternative)
+		local alternative=$(_numeric-int64_get_numeric_alternative "$1")
 		local module_name=$(numeric-int64_get_module_name)
 		alternatives_for \
-			${alternative} $(numeric-int64_get_module_name "reference") 0 \
+			${alternative} $(numeric-int64_get_module_name "$2") 0 \
 			$(cat "${T}"/alternative-${alternative}.sh)
 	}
-	numeric-int64-multibuild_foreach_abi_variant pc_file
-	numeric-int64-multibuild_foreach_variant install
+	numeric-int64-multibuild_foreach_abi_variant pc_file ${@}
+	numeric-int64-multibuild_foreach_variant install ${@}
 }
 
 # @FUNCTION: numeric-int64-multibuild_multilib_wrapper
