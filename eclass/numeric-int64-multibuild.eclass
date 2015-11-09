@@ -7,6 +7,7 @@
 # sci team <sci@gentoo.org>
 # @AUTHOR:
 # Author: Mark Wright <gienah@gentoo.org>
+# Author: Justin Lecher <jlec@gentoo.org>
 # @BLURB: flags and utility functions for building Fortran multilib int64
 # multibuild packages
 # @DESCRIPTION:
@@ -135,7 +136,8 @@ _numeric-int64_get_numeric_alternative () {
 # @CODE
 #	local module_name=$(numeric-int64_get_module_name)
 #	local alternative=$(numeric-int64_get_blas_alternative)
-#	alternatives_for ${alternative} $(numeric-int64_get_module_name "reference") 0 \
+#	alternatives_for \
+#		${alternative} $(numeric-int64_get_module_name "reference") 0 \
 #		/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${module_name}.pc
 # @CODE
 numeric-int64_get_blas_alternative() {
@@ -149,7 +151,8 @@ numeric-int64_get_blas_alternative() {
 # @CODE
 #	local module_name=$(numeric-int64_get_module_name)
 #	local alternative=$(numeric-int64_get_cblas_alternative)
-#	alternatives_for ${alternative} $(numeric-int64_get_module_name "reference") 0 \
+#	alternatives_for \
+#	${alternative} $(numeric-int64_get_module_name "reference") 0 \
 #		/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${module_name}.pc
 # @CODE
 numeric-int64_get_cblas_alternative() {
@@ -163,7 +166,8 @@ numeric-int64_get_cblas_alternative() {
 # @CODE
 #	local module_name=$(numeric-int64_get_module_name)
 #	local alternative=$(numeric-int64_get_cblas_alternative)
-#	alternatives_for ${alternative} $(numeric-int64_get_module_name "reference") 0 \
+#	alternatives_for \
+#		${alternative} $(numeric-int64_get_module_name "reference") 0 \
 #		/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${module_name}.pc
 # @CODE
 numeric-int64_get_xblas_alternative() {
@@ -177,7 +181,8 @@ numeric-int64_get_xblas_alternative() {
 # @CODE
 #	local module_name=$(numeric-int64_get_module_name)
 #	local alternative=$(numeric-int64_get_lapack_alternative)
-#	alternatives_for ${alternative} $(numeric-int64_get_module_name "reference") 0 \
+#	alternatives_for \
+#		${alternative} $(numeric-int64_get_module_name "reference") 0 \
 #		/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${module_name}.pc
 # @CODE
 numeric-int64_get_lapack_alternative() {
@@ -205,9 +210,9 @@ numeric-int64_get_blas_module_name() {
 }
 
 # @FUNCTION: numeric-int64_get_xblas_module_name
-# @DESCRIPTION: Returns the xblas pkg-config file name, without the .pc extension,
-# for the current build.  Which is xblas-int64 if we are performing an int64
-# build, or xblas otherwise.
+# @DESCRIPTION: Returns the xblas pkg-config file name,
+# without the .pc extension, for the current build. Which is xblas-int64 if 
+# we are performing an int64 build, or xblas otherwise.
 # @CODE
 #	cat <<-EOF > ${module_name}.pc
 #		...
@@ -234,7 +239,8 @@ numeric-int64_get_xblas_module_name() {
 #		export FCFLAGS="${FCFLAGS} $(get_abi_CFLAGS) $(numeric-int64_get_fortran_int64_abi_fflags)"
 #		econf $(use_enable fortran)
 #	}
-#	multibuild_foreach_variant run_in_build_dir numeric-int64-multibuild_multilib_wrapper my_configure
+#	multibuild_foreach_variant run_in_build_dir \
+#		numeric-int64-multibuild_multilib_wrapper my_configure
 # }
 # @CODE
 numeric-int64_get_fortran_int64_abi_fflags() {
@@ -273,14 +279,24 @@ numeric-int64_get_multibuild_variants() {
 			fi
 		done
 	fi
-#einfo "${MULTIBUILD_VARIANTS[@]}"
 	echo "${MULTIBUILD_VARIANTS[@]}"
 }
 
+# @FUNCTION: numeric-int64_get_all_abi_variants
+# @DESCRIPTION: Returns the array of int64, int32 and static build combinations
+# combined with all multilib ABI variants. Each ebuild function that requires 
+# multibuild functionalits needs to set the MULTIBUILD_VARIANTS variable to the
+# array returned by this function.
+# @CODE
+# src_prepare() {
+#	local MULTIBUILD_VARIANTS=( $(numeric-int64_get_all_abi_variants) )
+#	multibuild_copy_sources
+# }
+# @CODE
 numeric-int64_get_all_abi_variants() {
 	debug-print-function ${FUNCNAME} "${@}"
 	local abi ret=() variant
-#set -x
+
 	for abi in $(multilib_get_enabled_abis); do
 		for variant in $(numeric-int64_get_multibuild_variants); do
 			if [[ ${variant} =~ int64 ]]; then
@@ -290,8 +306,6 @@ numeric-int64_get_all_abi_variants() {
 			fi
 		done
 	done
-#set +x
-#einfo "${ret[@]}"
 	echo "${ret[@]}"
 }
 
@@ -315,22 +329,24 @@ numeric-int64_ensure_blas() {
 }
 
 # @FUNCTION: numeric-int64-multibuild_install_pkgconfig_alternative
-# @USAGE: 
-# @DESCRIPTION: 
+# @DESCRIPTION:
+# Install 
 numeric-int64-multibuild_install_pkgconfig_alternative() {
 	debug-print-function ${FUNCNAME} "${@}"
 	pc_file()  {
 		numeric-int64_is_static_build && return
 		local alternative=$(numeric-int64_get_blas_alternative)
 		local module_name=$(numeric-int64_get_module_name)
-		printf "/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${module_name}.pc " \
+		printf \
+			"/usr/$(get_libdir)/pkgconfig/${alternative}.pc ${module_name}.pc " \
 			>> "${T}"/alternative-${alternative}.sh
 	}
 	install() {
 		numeric-int64_is_static_build && return
 		local alternative=$(numeric-int64_get_blas_alternative)
 		local module_name=$(numeric-int64_get_module_name)
-		alternatives_for ${alternative} $(numeric-int64_get_module_name "reference") 0 \
+		alternatives_for \
+			${alternative} $(numeric-int64_get_module_name "reference") 0 \
 			$(cat "${T}"/alternative-${alternative}.sh)
 	}
 	numeric-int64-multibuild_foreach_abi_variant pc_file
@@ -342,7 +358,8 @@ numeric-int64-multibuild_install_pkgconfig_alternative() {
 # @DESCRIPTION:
 # Initialize the environment for ABI selected for multibuild.
 # @CODE
-#	multibuild_foreach_variant run_in_build_dir numeric-int64-multibuild_multilib_wrapper my_src_install
+# 	multibuild_foreach_variant run_in_build_dir \
+# 		numeric-int64-multibuild_multilib_wrapper my_src_install
 # @CODE
 numeric-int64-multibuild_multilib_wrapper() {
 	debug-print-function ${FUNCNAME} "${@}"
@@ -353,25 +370,42 @@ numeric-int64-multibuild_multilib_wrapper() {
 	"${@}"
 }
 
-# each ABI
+# @FUNCTION: numeric-int64-multibuild_foreach_abi
+# @USAGE: <argv> ...
+# @DESCRIPTION:
+# Run command for each enabled multilib ABI
+# @CODE
+# 	numeric-int64-multibuild_foreach_abi foo
+# @CODE
 numeric-int64-multibuild_foreach_abi() {
-#	debug-print-function ${FUNCNAME} "${@}"
+	debug-print-function ${FUNCNAME} "${@}"
 	multilib_foreach_abi "${@}"
 }
 
-# each variant 32, 64 and static
+# @FUNCTION: numeric-int64-multibuild_foreach_variant
+# @USAGE: <argv> ...
+# @DESCRIPTION:
+# Run command for each enabled numeric variant (e.g. int32, int64, static)
+# @CODE
+# 	numeric-int64-multibuild_foreach_variant install
+# @CODE
 numeric-int64-multibuild_foreach_variant() {
 	debug-print-function ${FUNCNAME} "${@}"
 	local MULTIBUILD_VARIANTS=( $(numeric-int64_get_multibuild_variants) )
 	multibuild_foreach_variant numeric-int64-multibuild_multilib_wrapper "${@}"
 }
 
-# each variant including ABI
-# args: --no-static
+# @FUNCTION: numeric-int64-multibuild_foreach_abi_variant
+# @USAGE: <argv> ...
+# @DESCRIPTION:
+# Run command for each enabled numeric variant (e.g. int32, int64, static) _AND_
+# enabled multilib ABI
+# @CODE
+# 	numeric-int64-multibuild_foreach_abi_variant cmake-utils_src_compile
+# @CODE
 numeric-int64-multibuild_foreach_abi_variant() {
 	debug-print-function ${FUNCNAME} "${@}"
 	local MULTIBUILD_VARIANTS=( $(numeric-int64_get_all_abi_variants) )
-#einfo "MULTIBUILD_VARIANTS are ${MULTIBUILD_VARIANTS[@]}"
 	multibuild_foreach_variant numeric-int64-multibuild_multilib_wrapper "${@}"
 }
 
